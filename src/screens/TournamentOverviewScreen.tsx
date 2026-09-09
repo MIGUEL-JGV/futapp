@@ -16,11 +16,13 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
+import * as Clipboard from 'expo-clipboard';
 
 import { Button } from '../components/ui/Button';
 import { Chip } from '../components/ui/Chip';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ListItem } from '../components/ui/ListItem';
+import { PressableScale } from '../components/ui/PressableScale';
 import { Screen } from '../components/ui/Screen';
 import { Segment } from '../components/ui/Segment';
 import { TextField } from '../components/ui/TextField';
@@ -48,6 +50,14 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
   const tournamentId = route.params.tournamentId;
   const canEdit = useCanEditActiveTournament();
   const [doubleRound, setDoubleRound] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = async () => {
+    if (!tournament?.publicUrl) return;
+    await Clipboard.setStringAsync(tournament.publicUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const tournament = useFutAppStore(
     useShallow((state) =>
@@ -326,9 +336,17 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
       {canEdit && (
         <View style={styles.section}>
           <Text style={styles.label}>Inscripciones (por enlace)</Text>
-          <Text style={styles.summary}>
-            Enlace público: {tournament.publicUrl ?? '—'}
-          </Text>
+          <PressableScale
+            onPress={handleCopyLink}
+            style={styles.publicLinkRow}
+            pressedStyle={{ opacity: 0.7 }}>
+            <Text numberOfLines={1} style={styles.publicLinkText}>
+              {tournament.publicUrl ?? '—'}
+            </Text>
+            <Text style={styles.copyHint}>
+              {copied ? '✓ Copiado' : 'Copiar'}
+            </Text>
+          </PressableScale>
           <TextField
             label="Nombre del equipo"
             value={regTeam}
@@ -440,11 +458,6 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
           }
         />
       </View>
-      {tournament.publicUrl ? (
-        <Text style={styles.summary}>
-          Comparte este enlace: {tournament.publicUrl}
-        </Text>
-      ) : null}
     </Screen>
   );
 }
@@ -464,6 +477,29 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: colors.textSecondary,
     fontSize: fontSizes.tableCell,
+  },
+  publicLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    backgroundColor: colors.card,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.accentSoft,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  publicLinkText: {
+    flex: 1,
+    fontSize: fontSizes.tableCell,
+    color: colors.textPrimary,
+  },
+  copyHint: {
+    fontSize: fontSizes.tableHeader,
+    fontWeight: '800',
+    color: colors.accent,
   },
   section: {
     marginTop: 14,
