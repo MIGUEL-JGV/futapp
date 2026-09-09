@@ -29,6 +29,10 @@ npx vercel --prod                # despliega a Vercel
 
 La app es backend-first: cuando hay credenciales de Supabase configuradas, toda mutación escribe directamente en la nube y las vistas públicas (`/t/:id`) se leen desde API; sin credenciales funciona en modo demo local (AsyncStorage).
 
+## Despliegue automático (GitHub + Vercel)
+
+El proyecto está conectado a Vercel vía Git: **cada `git push` a `main` dispara un deploy automático** desde el repositorio, usando las variables `EXPO_PUBLIC_*` configuradas en el proyecto de Vercel (Settings → Environment Variables). El CLI solo se usa para deploys locales/manuales.
+
 ## Scripts útiles
 
 - `npm run web` — dev en navegador
