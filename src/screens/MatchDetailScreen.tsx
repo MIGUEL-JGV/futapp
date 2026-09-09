@@ -16,6 +16,7 @@ import {
   Alert,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -458,6 +459,9 @@ function EventModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.modalCard}>
+          <ScrollView
+            contentContainerStyle={styles.modalScroll}
+            keyboardShouldPersistTaps="handled">
           <Text style={styles.modalTitle}>Registrar evento (RF-05)</Text>
 
           <Text style={styles.label}>Tipo</Text>
@@ -593,6 +597,7 @@ function EventModal({
               />
             </View>
           </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -618,6 +623,9 @@ function JustificationModal({ visible, onClose, title, message, onConfirm }: Jus
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.modalCard}>
+          <ScrollView
+            contentContainerStyle={styles.modalScroll}
+            keyboardShouldPersistTaps="handled">
           <Text style={styles.modalTitle}>{title}</Text>
           <Text style={styles.modalHint}>{message}</Text>
 
@@ -645,6 +653,7 @@ function JustificationModal({ visible, onClose, title, message, onConfirm }: Jus
               />
             </View>
           </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -784,6 +793,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     maxHeight: '92%',
+  },
+  modalScroll: {
+    paddingBottom: 4,
   },
   modalTitle: {
     fontSize: 16,

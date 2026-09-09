@@ -126,6 +126,7 @@ const styles = StyleSheet.create({
   },
   cell: {
     alignItems: 'flex-start',
+    minWidth: 0,
   },
   right: {
     alignItems: 'flex-end',

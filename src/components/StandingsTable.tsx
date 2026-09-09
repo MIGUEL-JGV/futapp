@@ -94,7 +94,10 @@ function StandingRow({
               label={row.teamName}
               size={24}
             />
-            <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
+            <Text
+              style={styles.teamName}
+              numberOfLines={2}
+              ellipsizeMode="tail">
               {row.teamName}
             </Text>
           </View>
@@ -256,6 +259,7 @@ const styles = StyleSheet.create({
   },
   cell: {
     alignItems: 'flex-start',
+    minWidth: 0,
   },
   right: {
     alignItems: 'flex-end',
@@ -268,15 +272,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   teamName: {
-    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
     fontSize: fontSizes.tableCell,
     color: colors.textPrimary,
     fontWeight: '700',
   },
   teamCell: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    minWidth: 0,
   },
   badge: {
     minWidth: 22,
