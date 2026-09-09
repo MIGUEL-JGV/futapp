@@ -17,6 +17,8 @@ export type RootStackParamList = {
   MatchDetail: { matchId: string };
   /** Landmark público (deep-link web), solo lectura. */
   PublicTournament: { tournamentId: string };
+  /** Panel del representante (deep-link `/team/:token`). */
+  TeamManager: { token: string };
 };
 
 /** Tabs de la vista principal: solo el listado de torneos. */

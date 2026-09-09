@@ -15,7 +15,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { ListItem } from '../components/ui/ListItem';
 import { Screen } from '../components/ui/Screen';
 import { positionLabels } from '../constants/labels';
-import { useCanEditActiveTournament } from '../hooks/useRole';
+import { useCanEditThisTeam } from '../hooks/useRole';
 import type { RootStackParamList } from '../navigation/types';
 import { useFutAppStore } from '../store/useFutAppStore';
 import { colors, fontSizes } from '../theme/colors';
@@ -26,7 +26,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'TeamDetail'>;
 export function TeamDetailScreen({ route, navigation }: Props) {
   const teamId = route.params.teamId;
 
-  const canEdit = useCanEditActiveTournament();
+  const canEdit = useCanEditThisTeam(teamId);
   const team = useFutAppStore(
     useShallow((state) => state.teams.find((t) => t.id === teamId)),
   );
@@ -128,8 +128,7 @@ export function TeamDetailScreen({ route, navigation }: Props) {
 
       <View style={styles.section}>
         <Chip label={canEdit ? 'EDITOR · TOCA PARA EDITAR' : 'INVITADO · LECTURA'} tone={canEdit ? 'accent' : 'neutral'} />
-      </View>
-    </Screen>
+      </View>    </Screen>
   );
 }
 

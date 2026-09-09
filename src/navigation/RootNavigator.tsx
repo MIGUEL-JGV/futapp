@@ -14,6 +14,7 @@ import { FixtureScreen } from '../screens/FixtureScreen';
 import { MatchDetailScreen } from '../screens/MatchDetailScreen';
 import { PlayerFormScreen } from '../screens/PlayerFormScreen';
 import { PublicTournamentScreen } from '../screens/PublicTournamentScreen';
+import { TeamManagerScreen } from '../screens/TeamManagerScreen';
 import { TeamDetailScreen } from '../screens/TeamDetailScreen';
 import { TeamFormScreen } from '../screens/TeamFormScreen';
 import { TournamentFormScreen } from '../screens/TournamentFormScreen';
@@ -104,6 +105,13 @@ export function RootNavigator() {
         name="PublicTournament"
         component={PublicTournamentScreen}
         options={{ title: 'Torneo' }}
+      />
+
+      {/* Panel del representante (deep-link /team/:token). */}
+      <Stack.Screen
+        name="TeamManager"
+        component={TeamManagerScreen}
+        options={{ title: 'Mi equipo' }}
       />
     </Stack.Navigator>
   );

@@ -165,6 +165,13 @@ async function syncAuthUser(userId: string, email: string): Promise<void> {
   // y luego recarga el dataset completo desde Supabase.
   await migrateLocalTournaments(userId);
   await useFutAppStore.getState().loadBackendData(userId);
+
+  // Si el email corresponde a un equipo aprobado, este usuario es el
+  // representante (team_manager): carga y fija su equipo gestionado.
+  const managerEmail = user.email ?? email;
+  if (managerEmail) {
+    await useFutAppStore.getState().loadTeamManagerData(managerEmail);
+  }
 }
 
 /**

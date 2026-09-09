@@ -147,6 +147,13 @@ export interface FutAppState {
   /** Usuarios conocidos (catálogo local para invitar moderadores). */
   knownUsers: User[];
 
+  /** ID del equipo que el team_manager puede gestionar (null si no es manager). */
+  teamManagerTeamId: string | null;
+  setTeamManagerTeamId: (teamId: string | null) => void;
+
+  /** Carga los equipos que gestiona el email autenticado y los marca. */
+  loadTeamManagerData: (email: string) => Promise<void>;
+
   /* ------------------------------ Fixture (RF-04) --------------------------- */
   matches: Match[];
   fixture: Fixture | null;
@@ -254,6 +261,7 @@ const initialState = {
   members: [],
   registrations: [],
   knownUsers: [],
+  teamManagerTeamId: null,
   isPublicReadonly: false,
   authStatus: null,
 };
@@ -318,6 +326,38 @@ export const useFutAppStore = create<FutAppState>((set, get) => {
     },
 
     setAuthStatus: (message) => set({ authStatus: message }),
+
+    setTeamManagerTeamId: (teamId) => set({ teamManagerTeamId: teamId }),
+
+    loadTeamManagerData: async (email) => {
+      if (!repo.backendActive || !email) return;
+      try {
+        const managedTeams = await repo.findTeamsByManagerEmail(
+          email.trim().toLowerCase(),
+        );
+        if (!managedTeams.length) return;
+        const tournamentId = managedTeams[0].tournamentId;
+        const publicData = await repo.fetchTournamentDatasetById(tournamentId);
+        if (publicData) {
+          set((state) => ({
+            tournaments: publicData.tournaments,
+            teams: publicData.teams,
+            players: publicData.players,
+            matches: publicData.matches,
+            events: publicData.events,
+            members: publicData.members,
+            registrations: publicData.registrations,
+            log: publicData.logs,
+            user: state.user,
+            selectedTournamentId: tournamentId,
+            teamManagerTeamId: managedTeams[0].id,
+            isPublicReadonly: false,
+          }));
+        }
+      } catch (err) {
+        syncError('cargar datos del representante', err);
+      }
+    },
 
     appendLog: ({ action, detail, tournamentId, matchId, justification }) => {
       const entry: AuditLogEntry = {
@@ -599,19 +639,24 @@ export const useFutAppStore = create<FutAppState>((set, get) => {
 
     setRegistrationStatus: (registrationId, status) => {
       const registration = get().registrations.find((r) => r.id === registrationId);
+      const managerToken = status === 'APPROVED' ? newUuid() : null;
       set((state) => ({
         registrations: state.registrations.map((r) =>
-          r.id === registrationId ? { ...r, status } : r,
+          r.id === registrationId ? { ...r, status, managerToken } : r,
         ),
       }));
       void repo
-        .updateRegistrationRow(registrationId, { status })
+        .updateRegistrationRow(registrationId, { status, managerToken })
         .catch((err) => syncError('actualizar estado de inscripción', err));
       if (!registration) return;
 
       if (status === 'APPROVED') {
         // La inscripción aprobada crea el equipo en el torneo.
-        get().addTeam(registration.tournamentId, registration.teamName);
+        const teamId = get().addTeam(registration.tournamentId, registration.teamName);
+        // Vincula el email del representante al equipo recién creado.
+        if (registration.email && teamId) {
+          get().updateTeam(teamId, { registeredByEmail: registration.email });
+        }
         get().appendLog({
           action: 'TEAM_REGISTRATION_APPROVED',
           tournamentId: registration.tournamentId,

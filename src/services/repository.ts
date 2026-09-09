@@ -57,6 +57,7 @@ function mapTeam(row: Row): Team {
     tournamentId: String(row.tournament_id),
     name: String(row.name ?? ''),
     logoUrl: row.logo_url ? String(row.logo_url) : null,
+    registeredByEmail: row.registered_by_email ? String(row.registered_by_email) : null,
     createdAt: String(row.created_at ?? new Date().toISOString()),
   };
 }
@@ -121,6 +122,7 @@ function mapRegistration(row: Row): TeamRegistration {
     message: row.message ? String(row.message) : null,
     contact: row.contact ? String(row.contact) : null,
     status: row.status as TeamRegistration['status'],
+    managerToken: row.manager_token ? String(row.manager_token) : null,
     createdAt: String(row.created_at ?? new Date().toISOString()),
   };
 }
@@ -161,6 +163,8 @@ const COLUMN_ALIASES: Record<string, string> = {
   teamName: 'team_name',
   publicUrl: 'public_url',
   displayName: 'display_name',
+  registeredByEmail: 'registered_by_email',
+  managerToken: 'manager_token',
 };
 
 /** Convierte una entidad de dominio a fila (drop `undefined`, alias de columna). */
@@ -425,6 +429,50 @@ export async function updateRegistrationRow(
   if (Object.keys(row).length === 0) return;
   const { error } = await supabase!.from('team_registrations').update(row).eq('id', id);
   if (error) throw new Error(error.message);
+}
+
+/** Resuelve una inscripción aprobada por su token de manager. */
+export async function findManagerRegistration(
+  token: string,
+): Promise<TeamRegistration | null> {
+  if (!token || !(await guard())) return null;
+  const { data, error } = await supabase!
+    .from('team_registrations')
+    .select('*')
+    .eq('manager_token', token)
+    .eq('status', 'APPROVED')
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapRegistration(data as Row);
+}
+
+/** Localiza el/los equipos que gestiona un email de representante. */
+export async function findTeamsByManagerEmail(
+  email: string,
+): Promise<Team[]> {
+  if (!email || !(await guard())) return [];
+  const { data, error } = await supabase!
+    .from('teams')
+    .select('*')
+    .eq('registered_by_email', email);
+  if (error || !data) return [];
+  return (data ?? []).map((r) => mapTeam(r as Row));
+}
+
+/** Resuelve el equipo asociado a un token de manager (RPC pública). */
+export async function resolveTeamByManagerToken(
+  token: string,
+): Promise<{ teamId: string; teamName: string; tournamentId: string } | null> {
+  if (!token || !(await guard())) return null;
+  const { data, error } = await supabase!
+    .rpc('get_team_by_manager_token', { p_token: token });
+  if (error || !Array.isArray(data) || data.length === 0) return null;
+  const row = data[0] as Record<string, unknown>;
+  return {
+    teamId: String(row.team_id),
+    teamName: String(row.team_name),
+    tournamentId: String(row.tournament_id),
+  };
 }
 
 /* ------------------------------ Bitácora --------------------------- */

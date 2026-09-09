@@ -7,7 +7,7 @@
  */
 
 /** Roles de usuario soportados (RF-01). */
-export type UserRole = 'admin' | 'spectator';
+export type UserRole = 'admin' | 'spectator' | 'team_manager';
 
 /** Rol de un miembro dentro de un torneo (multi-tenant). */
 export type MemberRole = 'owner' | 'moderator';
@@ -43,6 +43,8 @@ export interface TeamRegistration {
   /** Alias legacy del contacto, mantenido por compatibilidad. */
   contact?: string | null;
   status: RegistrationStatus;
+  /** Token único para enlace de acceso del representante aprobado. */
+  managerToken?: string | null;
   createdAt: string;
 }
 
@@ -128,6 +130,8 @@ export interface Team {
   name: string;
   /** URL del escudo (opcional). */
   logoUrl?: string | null;
+  /** Email del representante aprobado que registró este equipo. */
+  registeredByEmail?: string | null;
   createdAt: string;
 }
 

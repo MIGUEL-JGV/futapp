@@ -28,7 +28,7 @@ import { Segment } from '../components/ui/Segment';
 import { TextField } from '../components/ui/TextField';
 import { TournamentHeader } from '../components/ui/TournamentHeader';
 import { tournamentStatusLabels, formatLabels } from '../constants/labels';
-import { useCanEditActiveTournament } from '../hooks/useRole';
+import { useCanEditActiveTournament, useIsTeamManager } from '../hooks/useRole';
 import type {
   RootStackParamList,
   TournamentTabParamList,
@@ -37,6 +37,7 @@ import { useFutAppStore } from '../store/useFutAppStore';
 import { colors, fontSizes } from '../theme/colors';
 import { MatchStatus, TournamentStatus } from '../types';
 import { useIsOwnerActiveTournament } from '../hooks/useRole';
+import { SITE_URL } from '../services/site';
 
 type Props = {
   route: RouteProp<TournamentTabParamList, 'Overview'>;
@@ -59,7 +60,6 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
   const tournament = useFutAppStore(
     useShallow((state) =>
       state.tournaments.find((t) => t.id === tournamentId),
@@ -87,8 +87,18 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
   const invitesMember = useFutAppStore((state) => state.invitesMember);
   const removeMember = useFutAppStore((state) => state.removeMember);
   const registerKnownUser = useFutAppStore((state) => state.registerKnownUser);
+  const teamManagerTeamId = useFutAppStore((state) => state.teamManagerTeamId);
+  const isTeamManager = useIsTeamManager();
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
+  const handleCopyManagerLink = async (token: string) => {
+    await Clipboard.setStringAsync(`${SITE_URL}/team/${token}`);
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken(null), 2000);
+  };
 
   const tournamentMembers = members.filter(
     (m) => m.tournamentId === tournamentId,
@@ -139,6 +149,9 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
   const submitRegistration = useFutAppStore((state) => state.submitRegistration);
 const pendingRegistrations = registrations.filter(
     (r) => r.tournamentId === tournamentId && r.status === 'PENDING',
+  );
+  const approvedRegistrations = registrations.filter(
+    (r) => r.tournamentId === tournamentId && r.status === 'APPROVED',
   );
 
   const handleSubmitRegistration = (values: RegistrationFormValues) => {
@@ -241,17 +254,40 @@ const pendingRegistrations = registrations.filter(
 
       {!canEdit && !locked && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Inscripción de equipos</Text>
-          <Text style={styles.summary}>
-            Completa tus datos para inscribir a tu equipo: el organizador
-            revisará tu solicitud y te dará de alta en el torneo.
-          </Text>
-          <View style={styles.section}>
-            <RegistrationForm
-              onSubmit={handleSubmitRegistration}
-              submitLabel="Enviar solicitud"
-            />
-          </View>
+          {isTeamManager ? (
+            <>
+              <Text style={styles.sectionTitle}>Mi equipo</Text>
+              <Text style={styles.summary}>
+                Eres el representante de un equipo aprobado. Registra tu
+                plantilla y los datos de los jugadores.
+              </Text>
+              <View style={styles.section}>
+                <Button
+                  title="Gestionar mi equipo"
+                  variant="gold"
+                  onPress={() =>
+                    navigation.navigate('TeamDetail', {
+                      teamId: teamManagerTeamId!,
+                    })
+                  }
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.sectionTitle}>Inscripción de equipos</Text>
+              <Text style={styles.summary}>
+                Completa tus datos para inscribir a tu equipo: el organizador
+                revisará tu solicitud y te dará de alta en el torneo.
+              </Text>
+              <View style={styles.section}>
+                <RegistrationForm
+                  onSubmit={handleSubmitRegistration}
+                  submitLabel="Enviar solicitud"
+                />
+              </View>
+            </>
+          )}
         </View>
       )}
 
@@ -347,7 +383,7 @@ const pendingRegistrations = registrations.filter(
 
       {canEdit && (
         <View style={styles.section}>
-          <Text style={styles.label}>Inscripciones (por enlace)</Text>
+          <Text style={styles.label}>Inscripción por enlace</Text>
           <View style={styles.section}>
             <Button
               title={
@@ -372,12 +408,28 @@ const pendingRegistrations = registrations.filter(
               </Text>
             </PressableScale>
           ) : null}
+
+          <Text style={styles.hint}>
+            Comparte el enlace para que los equipos soliciten unirse. Cuando
+            apruebes una solicitud, se generará un enlace exclusivo para el
+            representante.
+          </Text>
+
           <View style={styles.section}>
-            <RegistrationForm
-              onSubmit={handleSubmitRegistration}
-              submitLabel="Enviar solicitud"
+            <Button
+              title={showManualAdd ? 'Ocultar alta manual' : 'Dar de alta equipo'}
+              variant="gold"
+              onPress={() => setShowManualAdd((v) => !v)}
             />
           </View>
+          {showManualAdd && (
+            <View style={styles.section}>
+              <RegistrationForm
+                onSubmit={handleSubmitRegistration}
+                submitLabel="Enviar solicitud"
+              />
+            </View>
+          )}
 
           {pendingRegistrations.length > 0 && (
             <View style={styles.section}>
@@ -419,6 +471,41 @@ const pendingRegistrations = registrations.filter(
                   </View>
                 </View>
               ))}
+            </View>
+          )}
+
+          {approvedRegistrations.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.label}>
+                Aprobados · enlace del representante (
+                {approvedRegistrations.length})
+              </Text>
+              {approvedRegistrations.map((reg) => (
+                <View key={reg.id} style={styles.regRow}>
+                  <View style={styles.regInfo}>
+                    <Text style={styles.regName}>{reg.teamName}</Text>
+                    <Text style={styles.summary}>
+                      {reg.managerToken
+                        ? `${SITE_URL}/team/${reg.managerToken}`
+                        : 'Enlace por generar…'}
+                    </Text>
+                  </View>
+                  {reg.managerToken ? (
+                    <PressableScale
+                      onPress={() => handleCopyManagerLink(reg.managerToken!)}
+                      style={styles.copyChip}
+                      pressedStyle={{ opacity: 0.7 }}>
+                      <Text style={styles.copyHint}>
+                        {copiedToken === reg.id ? '✓ Copiado' : 'Copiar'}
+                      </Text>
+                    </PressableScale>
+                  ) : null}
+                </View>
+              ))}
+              <Text style={styles.hint}>
+                Comparte este enlace con el representante para que registre su
+                plantilla.
+              </Text>
             </View>
           )}
         </View>
@@ -668,5 +755,21 @@ const styles = StyleSheet.create({
   regActions: {
     flexDirection: 'row',
     gap: 6,
+  },
+  hint: {
+    marginTop: 8,
+    color: colors.textSecondary,
+    fontSize: fontSizes.tableCell,
+    lineHeight: 16,
+  },
+  copyChip: {
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.accentSoft,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -28,6 +28,7 @@ const linking: LinkingOptions<RootStackParamList> = {
   config: {
     screens: {
       PublicTournament: 't/:tournamentId',
+      TeamManager: 'team/:token',
       Auth: 'auth',
       Main: '',
     },

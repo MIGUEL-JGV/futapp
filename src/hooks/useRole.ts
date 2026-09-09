@@ -55,3 +55,29 @@ export function useIsOwnerActiveTournament(): boolean {
 export function useIsSignedIn(): boolean {
   return useFutAppStore((state) => state.user !== null);
 }
+
+/**
+ * `true` si el usuario autenticado es el representante (team_manager)
+ * del torneo activo y está gestionando su propio equipo aprobado.
+ */
+export function useIsTeamManager(): boolean {
+  const tournamentId = useFutAppStore((state) => state.selectedTournamentId);
+  const userId = useFutAppStore((state) => state.user?.id);
+  const members = useFutAppStore((state) => state.members);
+  const isPublicReadonly = useFutAppStore((state) => state.isPublicReadonly);
+  const teamManagerTeamId = useFutAppStore((state) => state.teamManagerTeamId);
+  if (isPublicReadonly || !tournamentId || !userId) return false;
+  // El manager NO debe ser owner/moderador; y su equipo gestionado existe.
+  const member = members.find(
+    (m) => m.tournamentId === tournamentId && m.userId === userId,
+  );
+  if (member) return false;
+  return teamManagerTeamId !== null;
+}
+
+/** `true` si el usuario es el representante de ESTE equipo concreto. */
+export function useCanEditThisTeam(teamId: string): boolean {
+  const canEditTournament = useCanEditActiveTournament();
+  if (canEditTournament) return true;
+  return useFutAppStore((state) => state.teamManagerTeamId === teamId);
+}
