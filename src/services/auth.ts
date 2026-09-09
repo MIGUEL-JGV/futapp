@@ -13,7 +13,7 @@
 import { AuthError } from '@supabase/supabase-js';
 
 import { isSupabaseConfigured, supabase } from './supabase';
-import { mappers } from './repository';
+import { mappers, updateUserProfileName as repoUpdateUserProfileName } from './repository';
 import { migrateLocalTournaments } from './migration';
 import { useFutAppStore } from '../store/useFutAppStore';
 import type { User } from '../types';
@@ -31,12 +31,14 @@ export interface AuthResult {
 export async function signUp(
   email: string,
   password: string,
+  displayName?: string,
 ): Promise<AuthResult> {
   const normalized = email.trim().toLowerCase();
+  const name = displayName?.trim() || null;
 
   if (!isSupabaseConfigured || !supabase) {
     // Modo demo: registrar en el catálogo local y entrar como admin.
-    useFutAppStore.getState().registerKnownUser(normalized);
+    useFutAppStore.getState().registerKnownUser(normalized, name ?? undefined);
     useFutAppStore.getState().signInAsAdmin(normalized);
     return { ok: true };
   }
@@ -44,6 +46,7 @@ export async function signUp(
   const { data, error } = await supabase.auth.signUp({
     email: normalized,
     password,
+    options: name ? { data: { display_name: name } } : undefined,
   });
   if (error || !data.user) {
     return { ok: false, error: formatAuthError(error) };
@@ -51,7 +54,23 @@ export async function signUp(
 
   // El perfil público se crea solo vía trigger `handle_new_user`
   // (migración 0003): el INSERT directo fallaría por RLS.
-  await syncAuthUser(data.user.id, normalized);
+  const userId = data.user.id;
+  await syncAuthUser(userId, normalized);
+
+  // Persiste el nombre elegido en `user_profiles.display_name`
+  // (policy 0005) y actualiza el estado local.
+  if (name) {
+    try {
+      await repoUpdateUserProfileName(userId, name);
+    } catch (err) {
+      console.warn('[auth] No se pudo guardar el display_name', err);
+    }
+    useFutAppStore.setState((state) =>
+      state.user?.id === userId
+        ? { user: { ...state.user, displayName: name } }
+        : state,
+    );
+  }
   return { ok: true };
 }
 

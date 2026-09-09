@@ -32,6 +32,7 @@ export function AuthScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -72,7 +73,7 @@ export function AuthScreen() {
     }
     setError(null);
     setLoading(true);
-    const result = await signUp(email, password);
+    const result = await signUp(email, password, name);
     setLoading(false);
     if (result.ok) {
       setPublicReadonly(false);
@@ -110,6 +111,14 @@ export function AuthScreen() {
 
       <View style={styles.form}>
       <Text style={styles.section}>Acceso del organizador</Text>
+      <View style={styles.fieldGap}>
+        <TextField
+          label="Tu nombre (opcional)"
+          value={name}
+          onChangeText={setName}
+          placeholder="Ej.: Juan Pérez"
+        />
+      </View>
       <View style={styles.fieldGap}>
         <TextField
           label="Email"

@@ -219,8 +219,20 @@ export interface FutAppState {
   restorePublicSnapshot: (snapshot: Partial<FutAppState>) => void;
 
   /** Crea una solicitud de inscripción (inscripción por enlace). */
-  submitRegistration: (tournamentId: string, teamName: string, contact?: string | null) => string;
+  submitRegistration: (
+    tournamentId: string,
+    input: {
+      teamName: string;
+      representative?: string | null;
+      phone?: string | null;
+      email?: string | null;
+      message?: string | null;
+    },
+  ) => string;
   setRegistrationStatus: (registrationId: string, status: 'APPROVED' | 'REJECTED') => void;
+
+  /** Carga los perfiles de los miembros y los mezcla en `knownUsers`. */
+  loadUserProfiles: (userIds: string[]) => Promise<void>;
 
   /** Poblado de datos demostrativos para la primera ejecución. */
   loadDemoData: () => void;
@@ -466,6 +478,25 @@ export const useFutAppStore = create<FutAppState>((set, get) => {
 
     setMembers: (members) => set({ members }),
 
+    loadUserProfiles: async (userIds) => {
+      if (!repo.backendActive || !userIds?.length) return;
+      try {
+        const profiles = await repo.fetchProfilesByUserIds(
+          [...new Set(userIds)].filter(Boolean),
+        );
+        if (!profiles?.length) return;
+        set((state) => {
+          const known = new Map(state.knownUsers.map((u) => [u.id, u]));
+          for (const p of profiles) {
+            if (p.id && !known.has(p.id)) known.set(p.id, p);
+          }
+          return { knownUsers: [...known.values()] };
+        });
+      } catch (err) {
+        syncError('cargar perfiles de miembros', err);
+      }
+    },
+
     loadBackendData: async (userId) => {
       if (!repo.backendActive) return;
       try {
@@ -483,6 +514,9 @@ export const useFutAppStore = create<FutAppState>((set, get) => {
           user: state.user,
           selectedTournamentId: state.selectedTournamentId,
         }));
+        const ids = [...data.members.map((m) => m.userId)];
+        if (userId) ids.push(userId);
+        void get().loadUserProfiles(ids);
       } catch (err) {
         syncError('cargar datos desde Supabase', err);
       }
@@ -533,13 +567,16 @@ export const useFutAppStore = create<FutAppState>((set, get) => {
         .catch((err) => syncError('quitar moderador', err));
     },
 
-    submitRegistration: (tournamentId, teamName, contact = null) => {
+    submitRegistration: (tournamentId, input) => {
       const id = newId('reg');
       const registration: TeamRegistration = {
         id,
         tournamentId,
-        teamName,
-        contact,
+        teamName: input.teamName,
+        representative: input.representative ?? null,
+        phone: input.phone ?? null,
+        email: input.email ?? null,
+        message: input.message ?? null,
         status: 'PENDING',
         createdAt: new Date().toISOString(),
       };
@@ -547,10 +584,13 @@ export const useFutAppStore = create<FutAppState>((set, get) => {
       void repo
         .createRegistrationRow(registration)
         .catch((err) => syncError('enviar solicitud de inscripción', err));
+      const contact = [input.representative, input.phone, input.email]
+        .filter(Boolean)
+        .join(', ');
       get().appendLog({
         action: 'TEAM_REGISTRATION_SUBMITTED',
         tournamentId,
-        detail: `Solicitud de inscripción: "${teamName}"${
+        detail: `Solicitud de inscripción: "${input.teamName}"${
           contact ? ` (${contact})` : ''
         }`,
       });

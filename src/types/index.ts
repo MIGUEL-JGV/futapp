@@ -35,6 +35,12 @@ export interface TeamRegistration {
   id: string;
   tournamentId: string;
   teamName: string;
+  /** Nombre del representante que envía la solicitud. */
+  representative?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  message?: string | null;
+  /** Alias legacy del contacto, mantenido por compatibilidad. */
   contact?: string | null;
   status: RegistrationStatus;
   createdAt: string;

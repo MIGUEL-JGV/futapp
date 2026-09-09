@@ -156,26 +156,31 @@ export function MatchDetailScreen({ route }: Props) {
     const jurisdiction = draft.justification.trim() || null;
     const teamId = draft.team === 'home' ? match.homeTeamId! : match.awayTeamId!;
 
-    if (draft.type === MatchEventType.Goal) {
-      recordGoal({
-        matchId: match.id,
-        teamId,
-        playerId: draft.playerId,
-        minute: parsedMinute,
-        note: draft.note || null,
-        assistPlayerId: draft.assistPlayerId,
-        justification: jurisdiction,
-      });
-    } else {
-      recordCard({
-        matchId: match.id,
-        teamId,
-        playerId: draft.playerId,
-        minute: parsedMinute,
-        type: draft.type,
-        note: draft.note || null,
-        justification: jurisdiction,
-      });
+    try {
+      if (draft.type === MatchEventType.Goal) {
+        recordGoal({
+          matchId: match.id,
+          teamId,
+          playerId: draft.playerId,
+          minute: parsedMinute,
+          note: draft.note || null,
+          assistPlayerId: draft.assistPlayerId,
+          justification: jurisdiction,
+        });
+      } else {
+        recordCard({
+          matchId: match.id,
+          teamId,
+          playerId: draft.playerId,
+          minute: parsedMinute,
+          type: draft.type,
+          note: draft.note || null,
+          justification: jurisdiction,
+        });
+      }
+    } catch (err) {
+      Alert.alert('No se pudo guardar', (err as Error).message);
+      return;
     }
     setModalOpen(false);
   };
@@ -597,6 +602,11 @@ function EventModal({
               />
             </View>
           </View>
+          {requestJustification && !justification.trim() ? (
+            <Text style={styles.modalDisabledHint}>
+              Escribe la justificación para habilitar el botón Guardar.
+            </Text>
+          ) : null}
           </ScrollView>
         </View>
       </View>
@@ -653,6 +663,11 @@ function JustificationModal({ visible, onClose, title, message, onConfirm }: Jus
               />
             </View>
           </View>
+          {!justification.trim() ? (
+            <Text style={styles.modalDisabledHint}>
+              Escribe la justificación para habilitar el botón Confirmar.
+            </Text>
+          ) : null}
           </ScrollView>
         </View>
       </View>
@@ -807,6 +822,13 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.tableCell,
     color: colors.textSecondary,
     marginBottom: 6,
+  },
+  modalDisabledHint: {
+    marginTop: 8,
+    fontSize: fontSizes.tableCell,
+    color: '#B71C1C',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   playerChips: {
     flexDirection: 'row',

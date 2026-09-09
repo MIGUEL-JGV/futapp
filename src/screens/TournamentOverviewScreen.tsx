@@ -137,24 +137,19 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
     (state) => state.setRegistrationStatus,
   );
   const submitRegistration = useFutAppStore((state) => state.submitRegistration);
-  const pendingRegistrations = registrations.filter(
+const pendingRegistrations = registrations.filter(
     (r) => r.tournamentId === tournamentId && r.status === 'PENDING',
   );
-  const [regTeam, setRegTeam] = useState('');
-  const [regContact, setRegContact] = useState('');
-  const [regError, setRegError] = useState<string | null>(null);
 
-  const handleSubmitRegistration = () => {
-    const name = regTeam.trim();
-    if (!name) {
-      setRegError('Ingresa el nombre del equipo.');
-      return;
-    }
-    submitRegistration(tournamentId, name, regContact.trim() || null);
-    setRegTeam('');
-    setRegContact('');
-    setRegError(null);
-    Alert.alert('Solicitud enviada', `"${name}" quedó en espera de aprobación.`);
+  const handleSubmitRegistration = (values: RegistrationFormValues) => {
+    submitRegistration(tournamentId, {
+      teamName: values.teamName,
+      representative: values.representative || null,
+      phone: values.phone || null,
+      email: values.email || null,
+      message: values.message || null,
+    });
+    Alert.alert('Solicitud enviada', `"${values.teamName}" quedó en espera de aprobación.`);
   };
 
   const handleApproveRegistration = (id: string, name: string) => {
@@ -243,6 +238,22 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
         <Chip label={formatLabels[tournament.format]} tone="accent" />
         <Chip label={tournament.season} tone="neutral" />
       </View>
+
+      {!canEdit && !locked && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Inscripción de equipos</Text>
+          <Text style={styles.summary}>
+            Completa tus datos para inscribir a tu equipo: el organizador
+            revisará tu solicitud y te dará de alta en el torneo.
+          </Text>
+          <View style={styles.section}>
+            <RegistrationForm
+              onSubmit={handleSubmitRegistration}
+              submitLabel="Enviar solicitud"
+            />
+          </View>
+        </View>
+      )}
 
       {canEdit && !locked && (
         <>
@@ -361,23 +372,11 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
               </Text>
             </PressableScale>
           ) : null}
-          <TextField
-            label="Nombre del equipo"
-            value={regTeam}
-            onChangeText={setRegTeam}
-            placeholder="Ej.: Nuevo Real FC"
-          />
           <View style={styles.section}>
-            <TextField
-              label="Contacto (opcional)"
-              value={regContact}
-              onChangeText={setRegContact}
-              placeholder="ej.: capitan@equipo.com"
+            <RegistrationForm
+              onSubmit={handleSubmitRegistration}
+              submitLabel="Enviar solicitud"
             />
-          </View>
-          {regError ? <Text style={styles.error}>{regError}</Text> : null}
-          <View style={styles.section}>
-            <Button title="Enviar solicitud" variant="ghost" onPress={handleSubmitRegistration} />
           </View>
 
           {pendingRegistrations.length > 0 && (
@@ -389,6 +388,13 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
                 <View key={reg.id} style={styles.regRow}>
                   <View style={styles.regInfo}>
                     <Text style={styles.regName}>{reg.teamName}</Text>
+                    {reg.representative ? (
+                      <Text style={styles.summary}>
+                        {reg.representative}
+                        {reg.phone ? ` · ${reg.phone}` : ''}
+                        {reg.email ? ` · ${reg.email}` : ''}
+                      </Text>
+                    ) : null}
                     {reg.contact ? (
                       <Text style={styles.summary}>{reg.contact}</Text>
                     ) : null}
@@ -463,16 +469,115 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
         </View>
       )}
 
+      {canEdit && (
+        <View style={styles.section}>
+          <Button
+            title="Ver vista pública"
+            variant="ghost"
+            onPress={() =>
+              navigation.navigate('PublicTournament', { tournamentId })
+            }
+          />
+        </View>
+      )}
+    </Screen>
+  );
+}
+
+type RegistrationFormValues = {
+  teamName: string;
+  representative: string;
+  phone: string;
+  email: string;
+  message: string;
+};
+
+function RegistrationForm({
+  onSubmit,
+  submitLabel = 'Enviar solicitud',
+}: {
+  onSubmit: (values: RegistrationFormValues) => void;
+  submitLabel?: string;
+}) {
+  const [teamName, setTeamName] = useState('');
+  const [representative, setRepresentative] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = () => {
+    if (!teamName.trim()) {
+      setError('Ingresa el nombre del equipo.');
+      return;
+    }
+    if (!representative.trim()) {
+      setError('Ingresa el nombre del representante.');
+      return;
+    }
+    setError(null);
+    onSubmit({
+      teamName: teamName.trim(),
+      representative: representative.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      message: message.trim(),
+    });
+    setTeamName('');
+    setRepresentative('');
+    setPhone('');
+    setEmail('');
+    setMessage('');
+  };
+
+  return (
+    <View>
+      <TextField
+        label="Nombre del equipo *"
+        value={teamName}
+        onChangeText={setTeamName}
+        placeholder="Ej.: Nuevo Real FC"
+      />
       <View style={styles.section}>
-        <Button
-          title="Ver vista pública"
-          variant="ghost"
-          onPress={() =>
-            navigation.navigate('PublicTournament', { tournamentId })
-          }
+        <TextField
+          label="Nombre del representante *"
+          value={representative}
+          onChangeText={setRepresentative}
+          placeholder="Ej.: Juan Pérez"
         />
       </View>
-    </Screen>
+      <View style={styles.section}>
+        <TextField
+          label="Teléfono (opcional)"
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="phone-pad"
+          placeholder="Ej.: 55 1234 5678"
+        />
+      </View>
+      <View style={styles.section}>
+        <TextField
+          label="Email (opcional)"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          placeholder="capitan@equipo.com"
+        />
+      </View>
+      <View style={styles.section}>
+        <TextField
+          label="Mensaje (opcional)"
+          value={message}
+          onChangeText={setMessage}
+          placeholder="Comentarios para el organizador"
+        />
+      </View>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <View style={styles.section}>
+        <Button title={submitLabel} variant="ghost" onPress={handleSubmit} />
+      </View>
+    </View>
   );
 }
 

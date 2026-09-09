@@ -115,6 +115,10 @@ function mapRegistration(row: Row): TeamRegistration {
     id: row.id,
     tournamentId: String(row.tournament_id),
     teamName: String(row.team_name ?? ''),
+    representative: row.representative ? String(row.representative) : null,
+    phone: row.phone ? String(row.phone) : null,
+    email: row.email ? String(row.email) : null,
+    message: row.message ? String(row.message) : null,
     contact: row.contact ? String(row.contact) : null,
     status: row.status as TeamRegistration['status'],
     createdAt: String(row.created_at ?? new Date().toISOString()),
@@ -156,6 +160,7 @@ const COLUMN_ALIASES: Record<string, string> = {
   userId: 'user_id',
   teamName: 'team_name',
   publicUrl: 'public_url',
+  displayName: 'display_name',
 };
 
 /** Convierte una entidad de dominio a fila (drop `undefined`, alias de columna). */
@@ -506,18 +511,40 @@ export async function fetchTournamentDatasetById(
 
 /** Lee el perfil del usuario autenticado (o `null` en modo local). */
 export async function fetchUserProfile(userId: string): Promise<User | null> {
-  if (!(await guard())) return null;
+  const profiles = await fetchProfilesByUserIds([userId]);
+  return profiles[0] ?? null;
+}
+
+/** Lee los perfiles de varios usuarios miembros de un torneo (policy 0005). */
+export async function fetchProfilesByUserIds(userIds: string[]): Promise<User[]> {
+  if (!(await guard()) || userIds.length === 0) return [];
   const { data, error } = await supabase!
     .from('user_profiles')
     .select('id, email, display_name, role')
-    .eq('id', userId)
-    .maybeSingle();
-  if (error || !data) return null;
+    .in('id', userIds);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => mapProfile(row as Row));
+}
+
+/** Actualiza el `display_name` del perfil propio (policy 0005). */
+export async function updateUserProfileName(
+  userId: string,
+  name: string,
+): Promise<void> {
+  if (!(await guard())) return;
+  const { error } = await supabase!
+    .from('user_profiles')
+    .update({ display_name: name })
+    .eq('id', userId);
+  if (error) throw new Error(error.message);
+}
+
+function mapProfile(row: Row): User {
   return {
-    id: data.id,
-    email: data.email ?? null,
-    displayName: data.display_name ?? null,
-    role: data.role,
+    id: String(row.id),
+    email: row.email ? String(row.email) : null,
+    displayName: row.display_name ? String(row.display_name) : null,
+    role: row.role as User['role'],
   };
 }
 
