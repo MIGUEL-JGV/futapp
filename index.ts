@@ -1,3 +1,8 @@
+import { installWebAlert } from './src/services/webAlert';
+
+// Hace que Alert.alert funcione en la web (window.alert/confirm).
+installWebAlert();
+
 import { registerRootComponent } from 'expo';
 
 import App from './App';
