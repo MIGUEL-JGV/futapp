@@ -43,7 +43,9 @@ export function StatCard({
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 148,
     backgroundColor: colors.card,
     borderRadius: radius.md,
     paddingHorizontal: 12,

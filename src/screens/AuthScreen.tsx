@@ -108,6 +108,7 @@ export function AuthScreen() {
         </View>
       </LinearGradient>
 
+      <View style={styles.form}>
       <Text style={styles.section}>Acceso del organizador</Text>
       <View style={styles.fieldGap}>
         <TextField
@@ -166,6 +167,7 @@ export function AuthScreen() {
           : 'Demo sin backend: cualquier email/contraseña funciona y carga un ' +
             'torneo de ejemplo como admin.'}
       </Text>
+      </View>
     </Screen>
   );
 }
@@ -212,8 +214,14 @@ const styles = StyleSheet.create({
   },
   banner: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     justifyContent: 'center',
+  },
+  form: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 440,
   },
   section: {
     fontSize: fontSizes.tableValue,

@@ -51,6 +51,7 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
   const canEdit = useCanEditActiveTournament();
   const [doubleRound, setDoubleRound] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showLink, setShowLink] = useState(false);
 
   const handleCopyLink = async () => {
     if (!tournament?.publicUrl) return;
@@ -336,17 +337,30 @@ export function TournamentOverviewScreen({ route, navigation }: Props) {
       {canEdit && (
         <View style={styles.section}>
           <Text style={styles.label}>Inscripciones (por enlace)</Text>
-          <PressableScale
-            onPress={handleCopyLink}
-            style={styles.publicLinkRow}
-            pressedStyle={{ opacity: 0.7 }}>
-            <Text numberOfLines={1} style={styles.publicLinkText}>
-              {tournament.publicUrl ?? '—'}
-            </Text>
-            <Text style={styles.copyHint}>
-              {copied ? '✓ Copiado' : 'Copiar'}
-            </Text>
-          </PressableScale>
+          <View style={styles.section}>
+            <Button
+              title={
+                showLink
+                  ? 'Ocultar enlace de inscripción'
+                  : 'Compartir enlace para inscripción'
+              }
+              variant="ghost"
+              onPress={() => setShowLink((v) => !v)}
+            />
+          </View>
+          {showLink && tournament.publicUrl ? (
+            <PressableScale
+              onPress={handleCopyLink}
+              style={styles.publicLinkRow}
+              pressedStyle={{ opacity: 0.7 }}>
+              <Text numberOfLines={1} style={styles.publicLinkText}>
+                {tournament.publicUrl}
+              </Text>
+              <Text style={styles.copyHint}>
+                {copied ? '✓ Copiado' : 'Copiar'}
+              </Text>
+            </PressableScale>
+          ) : null}
           <TextField
             label="Nombre del equipo"
             value={regTeam}
@@ -470,6 +484,7 @@ const styles = StyleSheet.create({
   },
   chips: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginTop: 8,
   },

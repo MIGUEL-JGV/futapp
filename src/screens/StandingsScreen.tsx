@@ -5,7 +5,7 @@
  * `computeStandings` (PTS > DG > GF) a través del hook `useStandings`.
  */
 
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { EmptyState } from '../components/ui/EmptyState';
 import { Screen } from '../components/ui/Screen';
@@ -19,6 +19,8 @@ import { TournamentStatus } from '../types';
 
 export function StandingsScreen() {
   const { tournament, teams, matches, events, empty } = useActiveTournament();
+  const { width } = useWindowDimensions();
+  const compact = width < 640;
 
   const { rows, highlightTeamIds } = useStandings(
     teams,
@@ -54,7 +56,7 @@ export function StandingsScreen() {
         <StandingsTable
           rows={rows}
           highlightTeamIds={highlightTeamIds}
-          compact={false}
+          compact={compact}
           logosByTeamId={logosByTeamId}
         />
       </View>

@@ -34,7 +34,7 @@ export function TournamentTabs({ route }: Props) {
         headerShown: false,
         tabBarActiveTintColor: colors.brand,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarLabelStyle: { fontSize: fontSizes.tableHeader, fontWeight: '800' },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '800' },
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
