@@ -102,8 +102,8 @@ create trigger trg_team_registration_approved
 -- el equipo aprobado asociado (nombre + id + torneo). El roster/público
 -- ya es de solo lectura, así que no expone nada sensible.
 -- ---------------------------------------------------------------
-drop function if exists public.get_team_by_manager_token(uuid);
-create function public.get_team_by_manager_token(p_token uuid)
+drop function if exists public.get_team_by_manager_token(text);
+create function public.get_team_by_manager_token(p_token text)
 returns table (
   team_id     uuid,
   team_name   text,

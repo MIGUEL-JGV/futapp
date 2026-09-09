@@ -217,13 +217,30 @@ export async function fetchUserDataset(userId: string): Promise<BackendDataset |
   if (!(await guard())) return null;
   const client = supabase!;
 
-  const { data: memberships } = await client
-    .from('tournament_members')
-    .select('tournament_id')
-    .eq('user_id', userId);
-  const tournamentIds = [
-    ...new Set((memberships ?? []).map((m) => String(m.tournament_id))),
-  ].filter(Boolean);
+  // El admin GLOBAL (rol 'admin' en user_profiles) ve y edita todos los
+  // torneos, sin depender de una fila en tournament_members.
+  const { data: profile } = await client
+    .from('user_profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle();
+  const isGlobalAdmin = profile?.role === 'admin';
+
+  let tournamentIds: string[];
+  if (isGlobalAdmin) {
+    const { data: all } = await client.from('tournaments').select('id');
+    tournamentIds = [
+      ...new Set((all ?? []).map((t) => String(t.id))),
+    ].filter(Boolean);
+  } else {
+    const { data: memberships } = await client
+      .from('tournament_members')
+      .select('tournament_id')
+      .eq('user_id', userId);
+    tournamentIds = [
+      ...new Set((memberships ?? []).map((m) => String(m.tournament_id))),
+    ].filter(Boolean);
+  }
   if (tournamentIds.length === 0) return { ...EMPTY_DATASET };
 
   const inTournaments = (column: string) =>
